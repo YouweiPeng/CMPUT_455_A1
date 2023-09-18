@@ -64,6 +64,8 @@ class GoBoard(object):
         self.maxpoint: int = board_array_size(size)
         self.board: np.ndarray[GO_POINT] = np.full(self.maxpoint, BORDER, dtype=GO_POINT)
         self._initialize_empty_points(self.board)
+        self.capture_count=[0,0]
+        self.winner = "unknown"
 
     def copy(self) -> 'GoBoard':
         b = GoBoard(self.size)
@@ -73,6 +75,8 @@ class GoBoard(object):
         b.last_move = self.last_move
         b.last2_move = self.last2_move
         b.current_player = self.current_player
+        self.capture_count=[0,0]
+        self.winner = "unknown"
         assert b.maxpoint == self.maxpoint
         b.board = np.copy(self.board)
         return b
@@ -176,11 +180,8 @@ class GoBoard(object):
         Check if the given block has any liberty.
         block is a numpy boolean array
         """
-        for stone in where1d(block):
-            empty_nbs = self.neighbors_of_color(stone, EMPTY)
-            if empty_nbs:
-                return True
-        return False
+        #modify this check so that the original Go rule about liberty is not involved
+        return True
 
     def _block_of(self, stone: GO_POINT) -> np.ndarray:
         """
@@ -254,15 +255,17 @@ class GoBoard(object):
                 if single_capture != NO_POINT:
                     single_captures.append(single_capture)
         block = self._block_of(point)
-        if not self._has_liberty(block):  # undo suicide move
-            self.board[point] = EMPTY
-            return False
-        self.ko_recapture = NO_POINT
-        if in_enemy_eye and len(single_captures) == 1:
-            self.ko_recapture = single_captures[0]
+        # if not self._has_liberty(block):  # undo suicide move
+        #     self.board[point] = EMPTY
+        #     return False
+        # self.ko_recapture = NO_POINT
+        # if in_enemy_eye and len(single_captures) == 1:
+        #     self.ko_recapture = single_captures[0]
         self.current_player = opponent(color)
         self.last2_move = self.last_move
         self.last_move = point
+        self.check_five_in_a_row(point,color)
+        self.check_capture_Ninuki(point,color)
         return True
 
     def neighbors_of_color(self, point: GO_POINT, color: GO_COLOR) -> List:
@@ -283,6 +286,65 @@ class GoBoard(object):
                 point - self.NS + 1,
                 point + self.NS - 1,
                 point + self.NS + 1]
+
+    def check_five_in_a_row(self, point: GO_POINT, color:GO_COLOR) -> bool:
+        all_direction=[- 1,  + 1,  - self.NS,  + self.NS, 
+                 - self.NS - 1,
+                 - self.NS + 1,
+                 + self.NS - 1,
+                 + self.NS + 1]
+        for direction in all_direction:
+            p2=point+direction
+            p3=p2+direction
+            p4=p3+direction
+            p5=p4+direction
+            if (self.board[p2]==color and self.board[p3]==color and self.board[p4]==color and self.board[p5]==color):
+                self.winner=color
+                return True
+        return False
+    def check_capture_Ninuki(self, point: GO_POINT, color: GO_COLOR) -> None:
+        all_direction=[- 1,  + 1,  - self.NS,  + self.NS, 
+            - self.NS - 1,
+            - self.NS + 1,
+            + self.NS - 1,
+            + self.NS + 1]
+        for direction in all_direction:
+            # check_point=point
+            # cap=0
+            # while (check_point!=BORDER):    
+            #     check_point=check_point+direction
+            #     if (self.board[check_point]==EMPTY):
+            #         break
+            #     if (self.board[check_point]==opponent(color)):
+            #         cap=cap+1
+            #         continue
+            #     if (self.board[check_point]==color):
+            #         if (cap!=0):
+            #             self.capture_count[color-1]=self.capture_count[color-1]+cap
+            #             break
+            #         else:
+            #             break
+            p2=point+direction
+            p3=p2+direction
+            p4=p3+direction #check less than 4 stones because there is only one capture pattern XOOX
+            if  self.board[p2] == opponent(color): #XO??
+                #Skip cases
+                if self.board[p3]==EMPTY:
+                    continue
+                if self.board[p3]==BORDER or self.board[p4]==BORDER:
+                    continue
+                if self.board[p3]==opponent(color) and self.board[p4]==EMPTY:
+                    continue
+                #Capture case
+                if self.board[p3]==opponent(color) and self.board[p4]==color:
+                    self.capture_count[color-1]=self.capture_count[color-1]+2
+                    self.board[p2]=EMPTY
+                    self.board[p3]=EMPTY
+                    continue
+    def check_draw(self) -> None:
+        if self.get_empty_points().size==0:
+            self.winner=99
+            return
 
     def last_board_moves(self) -> List:
         """

@@ -288,11 +288,38 @@ class GtpConnection:
     """
     def gogui_rules_final_result_cmd(self, args: List[str]) -> None:
         """ Implement this function for Assignment 1 """
+        if self.board.capture_count[0]>=10:
+            self.respond("black")
+            return
+        if self.board.capture_count[1]>=10:
+            self.respond("white")
+            return
+        if self.board.winner==1:
+            self.respond("black")
+            return
+        elif self.board.winner==2:
+            self.respond("white")
+            return
+        if self.board.winner==99:
+            self.respond("draw")
+            return
         self.respond("unknown")
+
 
     def gogui_rules_legal_moves_cmd(self, args: List[str]) -> None:
         """ Implement this function for Assignment 1 """
-        self.respond()
+
+        if self.board.winner!="unknown":
+            self.respond()
+            return
+        moves: List[GO_POINT] = GoBoardUtil.generate_legal_moves(self.board, self.board.current_player)
+        gtp_moves: List[str] = []
+        for move in moves:
+            coords: Tuple[int, int] = point_to_coord(move, self.board.size)
+            gtp_moves.append(format_point(coords))
+        sorted_moves = " ".join(sorted(gtp_moves))
+        self.respond(sorted_moves)
+
 
     def play_cmd(self, args: List[str]) -> None:
         """
@@ -326,6 +353,9 @@ class GtpConnection:
         Modify this function for Assignment 1.
         Generate a move for color args[0] in {'b','w'}.
         """
+        if self.board.winner!="unknown":
+            self.respond("resign")
+            return
         board_color = args[0].lower()
         color = color_to_int(board_color)
         move = self.go_engine.get_move(self.board, color)
@@ -342,7 +372,11 @@ class GtpConnection:
         Modify this function for Assignment 1.
         Respond with the score for white, an space, and the score for black.
         """
-        self.respond("0 0")
+        black=self.board.capture_count[0]
+        white=self.board.capture_count[1]
+        
+        ans=str(white)+" "+str(black) #number of stones been captured in [white(black socre),black(white socre)]
+        self.respond(ans)
 
     """
     ==========================================================================
