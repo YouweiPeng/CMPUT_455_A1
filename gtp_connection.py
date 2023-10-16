@@ -383,10 +383,20 @@ class GtpConnection:
         move_as_string = format_point(move_coord)
         self.play_cmd([board_color, move_as_string, 'print_move'])
     
+    def set_time_limit(self, time_limit: int) -> None:
+        self.go_engine.time_limit = time_limit
+
     def timelimit_cmd(self, args: List[str]) -> None:
-        """ Implement this function for Assignment 2 """
-        self.respond("")
-        pass
+        try:
+            time_limit = int(args[0])
+            if 1 <= time_limit <= 100:
+               self.set_time_limit(time_limit)
+               self.respond()  # respond with success
+            else:
+                self.error(f"Time limit out of bounds: {time_limit}")
+        except ValueError:
+            self.error(f"Invalid time limit value: {args[0]}")
+
 
     def solve_cmd(self, args: List[str]) -> None:
         color = self.board.current_player

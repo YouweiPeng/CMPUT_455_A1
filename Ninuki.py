@@ -21,10 +21,14 @@ class Go0(GoEngine):
         Passes only if there is no other legal move.
         """
         GoEngine.__init__(self, "Go0", 1.0)
+        self.time_limit = 1  # Default time limit is 1 second
 
     def get_move(self, board: GoBoard, color: GO_COLOR) -> GO_POINT:
         return GoBoardUtil.generate_random_move(board, color, 
                                                 use_eye_filter=False)
+    
+    def set_time_limit(self, seconds: int) -> None:
+        self.time_limit = seconds
     
     def solve(self, board: GoBoard):
         """
